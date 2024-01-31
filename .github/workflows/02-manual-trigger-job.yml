@@ -71,6 +71,6 @@ jobs:
       with:
         creds: ${{secrets.AZURE_CREDENTIALS}}
     - name: Trigger Training Production job
-      run: az ml job create --file $GITHUB_WORKSPACE/src/job.yml --workspace-name $aml_workspace_name --resource-group $resource_group 
+      run: az ml job create --file $GITHUB_WORKSPACE/src/job-prod.yml --workspace-name $aml_workspace_name --resource-group $resource_group 
 
 
