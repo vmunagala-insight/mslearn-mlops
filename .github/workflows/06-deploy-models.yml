@@ -11,7 +11,7 @@ env:
 
 jobs:
     register-model:
-        name: unit-test
+        name: register-model
         runs-on: ubuntu-latest
         environment:
             name: prod
@@ -27,10 +27,18 @@ jobs:
           - name: Register Model
             run: az ml model create --name ${{ env.model-name }} --path azureml://jobs/${{ env.job-name }}/outputs/artifacts/paths/model/ --type mlflow_model --workspace-name ${{ env.aml_workspace_name }} --resource-group ${{ env.resource_group }}
     create-endpoint:
-        name: unit-test
+        name: create-endpoint
         runs-on: ubuntu-latest
         needs: [register-model]
         steps:
+            - name: Check out repo
+              uses: actions/checkout@main
+            - name: Install az ml extension
+              run: az extension add -n ml -y
+            - name: Azure login
+              uses: azure/login@v1
+              with:
+                creds: ${{secrets.AZURE_CREDENTIALS}}
             - name: Create Endpoint
               run: az ml online-endpoint create --file $GITHUB_WORKSPACE/src/create-endpoint.yml --workspace-name $aml_workspace_name --resource-group $resource_group
     deploy-model:
@@ -38,5 +46,13 @@ jobs:
         runs-on: ubuntu-latest
         needs: [create-endpoint]
         steps:
+            - name: Check out repo
+              uses: actions/checkout@main
+            - name: Install az ml extension
+              run: az extension add -n ml -y
+            - name: Azure login
+              uses: azure/login@v1
+              with:
+                creds: ${{secrets.AZURE_CREDENTIALS}}
             - name: Deploy Model
               run: az ml online-deployment create --file $GITHUB_WORKSPACE/src/deploy-model-endpoint.yml --workspace-name $aml_workspace_name --resource-group $resource_group
