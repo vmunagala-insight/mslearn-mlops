@@ -1,0 +1,42 @@
+name: Register and Deploy Models
+
+on:
+  workflow_dispatch:
+
+env:
+  resource_group: aml-rg
+  aml_workspace_name: amlwp
+  job-name: joyful_rabbit_8pzwwkm3zk  # name of the job that contains the model
+  model-name: my-mslearnmlops-model # name of the model
+
+jobs:
+    register-model:
+        name: unit-test
+        runs-on: ubuntu-latest
+        environment:
+            name: prod
+        steps:
+          - name: Check out repo
+            uses: actions/checkout@main
+          - name: Install az ml extension
+            run: az extension add -n ml -y
+          - name: Azure login
+            uses: azure/login@v1
+            with:
+              creds: ${{secrets.AZURE_CREDENTIALS}}
+          - name: Register Model
+            run: az ml model create --name ${{ env.model-name }} --path azureml://jobs/${{ env.job-name }}/outputs/artifacts/paths/model/ --type mlflow_model --workspace-name ${{ env.aml_workspace_name }} --resource-group ${{ env.resource_group }}
+    create-endpoint:
+        name: unit-test
+        runs-on: ubuntu-latest
+        needs: [register-model]
+        steps:
+            - name: Create Endpoint
+              run: az ml online-endpoint create --file $GITHUB_WORKSPACE/src/create-endpoint.yml --workspace-name $aml_workspace_name --resource-group $resource_group
+    deploy-model:
+        name: deploy-model
+        runs-on: ubuntu-latest
+        needs: [create-endpoint]
+        steps:
+            - name: Deploy Model
+              run: az ml online-deployment create --file $GITHUB_WORKSPACE/src/deploy-model-endpoint.yml --workspace-name $aml_workspace_name --resource-group $resource_group
